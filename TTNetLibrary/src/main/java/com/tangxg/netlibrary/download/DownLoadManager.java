@@ -1,12 +1,15 @@
 package com.tangxg.netlibrary.download;
 
+import android.content.Context;
 import android.support.annotation.NonNull;
 import android.text.TextUtils;
-import android.util.AtomicFile;
 
-import java.io.File;
+import com.tangxg.netlibrary.db.DownLoadDao;
+import com.tangxg.netlibrary.db.DownLoadEntity;
+
 import java.io.IOException;
 import java.util.HashSet;
+import java.util.List;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -25,20 +28,22 @@ public class DownLoadManager {
     private static DownLoadManager dlManager;
     private static final int MAX_THREAD_COUNT = 3;
     //防止重复请求下载
-    private HashSet<DownLoadTask> taskHashSet = new HashSet<>();
+    private HashSet<DownLoadTask> downLoadTasks = new HashSet<>();
+    private Context context;
 
     private DownLoadManager() {
     }
 
+    public void init(Context context) {
+        this.context = context.getApplicationContext();
+    }
+
     public static DownLoadManager getInstance() {
-        if (dlManager == null) {
-            synchronized (DownLoadManager.class) {
-                if (dlManager == null) {
-                    dlManager = new DownLoadManager();
-                }
-            }
-        }
-        return dlManager;
+        return Holder.sInstance;
+    }
+
+    public static class Holder {
+        private static final DownLoadManager sInstance = new DownLoadManager();
     }
 
     private static final ThreadPoolExecutor poolExecutor = new ThreadPoolExecutor(MAX_THREAD_COUNT, MAX_THREAD_COUNT, 60, TimeUnit.MILLISECONDS, new SynchronousQueue<Runnable>(), new ThreadFactory() {
@@ -56,12 +61,29 @@ public class DownLoadManager {
             return;
         }
         final DownLoadTask task = new DownLoadTask(url, callback);
-        if (taskHashSet.contains(task)) {
+        if (downLoadTasks.contains(task)) {
             callback.fail(HttpManager.TASK_REPEAT_ERROR_CODE, "任务存在！");
             return;
         }
-        taskHashSet.add(task);
-        //第一次请求获取到contentLength
+        downLoadTasks.add(task);
+        DownLoadDao dao = new DownLoadDao(context);
+        List<DownLoadEntity> results = dao.queryDownLoadByUrl(url);
+        if (results == null || results.isEmpty()) {
+            firstDownLoad(url, callback, task);
+        }else {
+            for (DownLoadEntity result : results) {
+
+            }
+        }
+    }
+
+    /**
+     *  第一次请求获取下载得到contentLength
+     * @param url
+     * @param callback
+     * @param task
+     */
+    private void firstDownLoad(final String url, final DownLoadCallback callback, final DownLoadTask task) {
         HttpManager.getInstance().asyncRequest(url, new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
@@ -82,7 +104,6 @@ public class DownLoadManager {
                 }
                 //每个线程均分下载数据
                 processDownLoad(length, url, callback);
-
             }
         });
     }
@@ -93,9 +114,9 @@ public class DownLoadManager {
             //计算出每个线程需要下载的长度和起始位，结束位
             long startSize = i * threadLoadSize;
             long endSize = 0;
-            if (endSize == MAX_THREAD_COUNT -1) {
+            if (endSize == MAX_THREAD_COUNT - 1) {
                 endSize = length - 1;
-            }else {
+            } else {
                 endSize = (i + 1) * threadLoadSize - 1;
             }
             poolExecutor.execute(new DownLoadRunnable(startSize, endSize, url, callback));
@@ -103,8 +124,8 @@ public class DownLoadManager {
     }
 
     private void taskRemove(DownLoadTask task) {
-        if (taskHashSet != null && task != null) {
-            taskHashSet.remove(task);
+        if (downLoadTasks != null && task != null) {
+            downLoadTasks.remove(task);
         }
     }
 }
