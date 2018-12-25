@@ -71,8 +71,10 @@ public class DownLoadManager {
         if (results == null || results.isEmpty()) {
             firstDownLoad(url, callback, task);
         }else {
-            for (DownLoadEntity result : results) {
-
+            for (DownLoadEntity entity : results) {
+                long startSize = entity.getStartSize() + entity.getEndSize();
+                long endSize = entity.getEndSize();
+                entity.setStartSize(startSize);
             }
         }
     }
