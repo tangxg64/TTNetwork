@@ -21,6 +21,9 @@ public class DownLoadEntity {
     @DatabaseField(useGetSet=true, columnName = "end_size")
     private long endSize;
 
+    @DatabaseField(useGetSet=true, columnName = "progress")
+    private long progress;
+
     public DownLoadEntity(){
 
     }
@@ -30,6 +33,14 @@ public class DownLoadEntity {
         this.url = url;
         this.startSize = startSize;
         this.endSize = endSize;
+    }
+
+    public long getProgress() {
+        return progress;
+    }
+
+    public void setProgress(long progress) {
+        this.progress = progress;
     }
 
     public int getId() {

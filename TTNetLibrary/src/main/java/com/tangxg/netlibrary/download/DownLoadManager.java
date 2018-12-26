@@ -69,18 +69,24 @@ public class DownLoadManager {
         DownLoadDao dao = new DownLoadDao(context);
         List<DownLoadEntity> results = dao.queryDownLoadByUrl(url);
         if (results == null || results.isEmpty()) {
+            //第一次下载，获取contentlength ，计算start end
             firstDownLoad(url, callback, task);
-        }else {
+        } else {
+
             for (DownLoadEntity entity : results) {
                 long startSize = entity.getStartSize() + entity.getEndSize();
                 long endSize = entity.getEndSize();
                 entity.setStartSize(startSize);
+                DownLoadRunnable runnable = new DownLoadRunnable(startSize, endSize, url, entity, callback);
+                runnable.setContext(context);
+                poolExecutor.execute(runnable);
             }
         }
     }
 
     /**
-     *  第一次请求获取下载得到contentLength
+     * 第一次请求获取下载得到contentLength
+     *
      * @param url
      * @param callback
      * @param task
@@ -121,7 +127,10 @@ public class DownLoadManager {
             } else {
                 endSize = (i + 1) * threadLoadSize - 1;
             }
-            poolExecutor.execute(new DownLoadRunnable(startSize, endSize, url, callback));
+            DownLoadEntity entity = new DownLoadEntity(url, startSize, endSize);
+            DownLoadRunnable runnable = new DownLoadRunnable(startSize, endSize, url, entity, callback);
+            runnable.setContext(context);
+            poolExecutor.execute(runnable);
         }
     }
 

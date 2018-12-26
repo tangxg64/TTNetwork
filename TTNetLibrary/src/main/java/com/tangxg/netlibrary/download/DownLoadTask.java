@@ -1,11 +1,11 @@
 package com.tangxg.netlibrary.download;
 
 /**
- * 下载对象行为载体
+ * 下载任务对象信息
+ * 用于缓存任务
  * Created by tangxg  on 2018/12/23 0023.
  * 邮箱  369516895@QQ.com
  */
-
 public class DownLoadTask {
     private String url;
     private DownLoadCallback downLoadCallback;

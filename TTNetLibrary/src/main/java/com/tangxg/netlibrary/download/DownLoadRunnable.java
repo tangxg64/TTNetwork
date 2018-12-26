@@ -1,6 +1,10 @@
 package com.tangxg.netlibrary.download;
 
+import android.content.Context;
+
 import com.tangxg.netlibrary.FileStorageManager;
+import com.tangxg.netlibrary.db.DownLoadDao;
+import com.tangxg.netlibrary.db.DownLoadEntity;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -16,17 +20,23 @@ import okhttp3.Response;
  */
 
 public class DownLoadRunnable implements Runnable {
+    private String url;
     private long startSize;
     private long endSize;
-    private String url;
+    private DownLoadEntity downLoadEntity;
     private DownLoadCallback callback;
+    private Context context;
 
-    public DownLoadRunnable(long startSize, long endSize, String url, DownLoadCallback callback) {
+
+    public DownLoadRunnable(long startSize, long endSize, String url, DownLoadEntity downLoadEntity, DownLoadCallback callback) {
         this.startSize = startSize;
         this.endSize = endSize;
         this.url = url;
+        this.downLoadEntity = downLoadEntity;
         this.callback = callback;
     }
+
+
 
 
     @Override
@@ -47,11 +57,22 @@ public class DownLoadRunnable implements Runnable {
             InputStream inputStream = response.body().byteStream();
             while ((len = inputStream.read(buffer, 0, buffer.length)) != -1) {
                 randomAccessFile.write(buffer, 0, len);
+                len += len;
             }
+            downLoadEntity.setProgress(len);
+            //下载信息写入到表中
+            DownLoadDao dao = new DownLoadDao(context);
+            dao.addDownLoadInfo(downLoadEntity);
             callback.success(file);
         } catch (java.io.IOException e) {
             e.printStackTrace();
+        }finally {
+
         }
 
+    }
+
+    public void setContext(Context context) {
+        this.context = context;
     }
 }
