@@ -8,9 +8,9 @@ import java.io.File;
  */
 
 public interface DownLoadCallback {
-    void success(File file);
+    void onSuccess(File file);
 
-    void fail(int code ,String errorMessage);
+    void onFail(int code , String errorMessage);
 
-    void progress(int progress);
+    void onProgress(int progress);
 }

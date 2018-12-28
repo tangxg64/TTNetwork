@@ -1,18 +1,25 @@
 package com.tangxg.ttnet;
 
+import android.content.Intent;
+import android.net.Uri;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
 import android.view.ViewOutlineProvider;
+import android.widget.ProgressBar;
+import android.widget.Toast;
 
 import com.tangxg.netlibrary.FileStorageManager;
 import com.tangxg.netlibrary.download.DownLoadCallback;
+import com.tangxg.netlibrary.download.DownLoadManager;
 import com.tangxg.netlibrary.download.HttpManager;
 import com.tangxg.netlibrary.utils.Logger;
 
 import java.io.File;
 
 public class MainActivity extends AppCompatActivity {
+    static final String TAG = "ttnetwork";
+    String downLoadUrl = "http://shouji.360tpcdn.com/170317/4556661a3b927ada1d8cf9f8a233ca36/com.sds.android.ttpod_10000700.apk";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -22,22 +29,32 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void downLoad(View view) {
-        HttpManager.getInstance().asyncRequest("https://ss0.baidu.com/6ONWsjip0QIZ8tyhnq/it/u=2895986097,3609514076&fm=173&app=25&f=JPEG?w=600&h=400&s=DBACB7475B8662D2062E5B6D0300E068"
-                , new DownLoadCallback() {
-                    @Override
-                    public void success(File file) {
-                        Logger.debug("ttnet" , file.getAbsolutePath());
-                    }
+        final ProgressBar progressBarView = findViewById(R.id.progressBar);
+        DownLoadManager.getInstance().startDownLoad(downLoadUrl, new DownLoadCallback() {
+            @Override
+            public void onSuccess(File file) {
+                Toast.makeText(MainActivity.this, "onSuccess file" + file.getAbsolutePath(), Toast.LENGTH_SHORT).show();
+//                installApk(file);
+            }
 
-                    @Override
-                    public void fail(int code, String errorMessage) {
+            @Override
+            public void onFail(int code, String errorMessage) {
+                Logger.debug(TAG, "code : " + code + "  mesg :" + errorMessage);
+                Toast.makeText(MainActivity.this, "code : " + code + "  mesg :" + errorMessage, Toast.LENGTH_SHORT).show();
+            }
 
-                    }
+            @Override
+            public void onProgress(int progress) {
+                progressBarView.setProgress(progress);
+            }
+        });
 
-                    @Override
-                    public void progress(int progress) {
+    }
 
-                    }
-                });
+    private void installApk(File file) {
+        Intent intent = new Intent(Intent.ACTION_VIEW);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        intent.setDataAndType(Uri.parse("file://" + file.getAbsoluteFile().toString()), "application/vnd.android.package-archive");
+        MainActivity.this.startActivity(intent);
     }
 }

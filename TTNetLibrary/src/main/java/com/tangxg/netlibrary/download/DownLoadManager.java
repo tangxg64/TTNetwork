@@ -4,12 +4,16 @@ import android.content.Context;
 import android.support.annotation.NonNull;
 import android.text.TextUtils;
 
+import com.tangxg.netlibrary.FileStorageManager;
 import com.tangxg.netlibrary.db.DownLoadDao;
 import com.tangxg.netlibrary.db.DownLoadEntity;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -30,21 +34,25 @@ public class DownLoadManager {
     //防止重复请求下载
     private HashSet<DownLoadTask> downLoadTasks = new HashSet<>();
     private Context context;
+    //利用该线程实时取得当前的下载进度
+    private ExecutorService executorService = Executors.newScheduledThreadPool(1);
+    private long mLength;
 
     private DownLoadManager() {
-    }
-
-    public void init(Context context) {
-        this.context = context.getApplicationContext();
     }
 
     public static DownLoadManager getInstance() {
         return Holder.sInstance;
     }
 
-    public static class Holder {
+    private static class Holder {
         private static final DownLoadManager sInstance = new DownLoadManager();
     }
+
+    public void init(Context context) {
+        this.context = context.getApplicationContext();
+    }
+
 
     private static final ThreadPoolExecutor poolExecutor = new ThreadPoolExecutor(MAX_THREAD_COUNT, MAX_THREAD_COUNT, 60, TimeUnit.MILLISECONDS, new SynchronousQueue<Runnable>(), new ThreadFactory() {
         AtomicInteger integer = new AtomicInteger(1);
@@ -62,7 +70,7 @@ public class DownLoadManager {
         }
         final DownLoadTask task = new DownLoadTask(url, callback);
         if (downLoadTasks.contains(task)) {
-            callback.fail(HttpManager.TASK_REPEAT_ERROR_CODE, "任务存在！");
+            callback.onFail(HttpManager.TASK_REPEAT_ERROR_CODE, "任务存在！");
             return;
         }
         downLoadTasks.add(task);
@@ -72,16 +80,41 @@ public class DownLoadManager {
             //第一次下载，获取contentlength ，计算start end
             firstDownLoad(url, callback, task);
         } else {
-
-            for (DownLoadEntity entity : results) {
-                long startSize = entity.getStartSize() + entity.getEndSize();
+            //断点续传，取出缓存的下载节点
+            for (int i = 0; i < results.size(); i++) {
+                DownLoadEntity entity = results.get(i);
+                long startSize = entity.getStartSize() + entity.getProgress();
                 long endSize = entity.getEndSize();
+                if (i == results.size() -1) {
+                    mLength = endSize + 1;
+                }
                 entity.setStartSize(startSize);
                 DownLoadRunnable runnable = new DownLoadRunnable(startSize, endSize, url, entity, callback);
                 runnable.setContext(context);
                 poolExecutor.execute(runnable);
             }
         }
+        //开启下载时，进行循环得到当前下载进度
+        executorService.execute(new Runnable() {
+            @Override
+            public void run() {
+                while (true) {
+                    try {
+                        Thread.sleep(200);
+                        File file = FileStorageManager.getInstance().getFileByUrl(url);
+                        long fileSize = file.length();
+                        int progress = (int) (mLength / fileSize  * 100);
+                        if (progress >= 100) {
+                            callback.onProgress(progress);
+                            return;
+                        }
+                        callback.onProgress(progress);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        });
     }
 
     /**
@@ -95,23 +128,23 @@ public class DownLoadManager {
         HttpManager.getInstance().asyncRequest(url, new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
-//                callback.fail();
+//                callback.onFail();
                 taskRemove(task);
             }
 
             @Override
             public void onResponse(Call call, Response response) throws IOException {
                 if (!response.isSuccessful() && callback != null) {
-                    callback.fail(HttpManager.NETWORK_ERROR_CODE, "网络请求失败！");
+                    callback.onFail(HttpManager.NETWORK_ERROR_CODE, "网络请求失败！");
                     return;
                 }
-                long length = response.body().contentLength();
-                if (length == -1) {
-                    callback.fail(HttpManager.LENGTH_ERROR_CODE, "contentLength -1！");
+                mLength = response.body().contentLength();
+                if (mLength == -1) {
+                    callback.onFail(HttpManager.LENGTH_ERROR_CODE, "contentLength -1！");
                     return;
                 }
                 //每个线程均分下载数据
-                processDownLoad(length, url, callback);
+                processDownLoad(mLength, url, callback);
             }
         });
     }
@@ -127,7 +160,7 @@ public class DownLoadManager {
             } else {
                 endSize = (i + 1) * threadLoadSize - 1;
             }
-            DownLoadEntity entity = new DownLoadEntity(url, startSize, endSize);
+            DownLoadEntity entity = new DownLoadEntity(url, startSize, endSize , i);
             DownLoadRunnable runnable = new DownLoadRunnable(startSize, endSize, url, entity, callback);
             runnable.setContext(context);
             poolExecutor.execute(runnable);

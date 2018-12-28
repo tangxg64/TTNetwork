@@ -7,8 +7,6 @@ import com.tangxg.netlibrary.db.DownLoadDao;
 import com.tangxg.netlibrary.db.DownLoadEntity;
 
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.RandomAccessFile;
 
@@ -37,39 +35,36 @@ public class DownLoadRunnable implements Runnable {
     }
 
 
-
-
     @Override
     public void run() {
         Response response = HttpManager.getInstance().syncRequestByRange(url, startSize, endSize);
         if (response == null && callback != null) {
-            callback.fail(HttpManager.NETWORK_ERROR_CODE, "网络请求失败！");
+            callback.onFail(HttpManager.NETWORK_ERROR_CODE, "网络请求失败！");
             return;
         }
         try {
+            int progress = 0;
             File file = FileStorageManager.getInstance().getFileByUrl(url);
             //rwd 可读 ，可写 ， 可追加
-            RandomAccessFile randomAccessFile = new RandomAccessFile(file, "rwd");
-            randomAccessFile.seek(startSize);
+            RandomAccessFile accessFile = new RandomAccessFile(file, "rwd");
+            accessFile.seek(startSize);
             //写入数据
             byte[] buffer = new byte[1024 * 200];
             int len;
             InputStream inputStream = response.body().byteStream();
             while ((len = inputStream.read(buffer, 0, buffer.length)) != -1) {
-                randomAccessFile.write(buffer, 0, len);
-                len += len;
+                accessFile.write(buffer, 0, len);
+                progress += len;
             }
-            downLoadEntity.setProgress(len);
+            downLoadEntity.setProgress(progress);
             //下载信息写入到表中
             DownLoadDao dao = new DownLoadDao(context);
             dao.addDownLoadInfo(downLoadEntity);
-            callback.success(file);
+            accessFile.close();
+            callback.onSuccess(file);
         } catch (java.io.IOException e) {
             e.printStackTrace();
-        }finally {
-
         }
-
     }
 
     public void setContext(Context context) {

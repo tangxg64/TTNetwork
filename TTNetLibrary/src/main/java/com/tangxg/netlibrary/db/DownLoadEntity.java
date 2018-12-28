@@ -9,30 +9,34 @@ import com.j256.ormlite.table.DatabaseTable;
  */
 @DatabaseTable(tableName = "tab_download")
 public class DownLoadEntity {
-    @DatabaseField(useGetSet=true,generatedId=true,columnName="id")
+    @DatabaseField(useGetSet = true, generatedId = true, columnName = "id")
     private int id;
 
-    @DatabaseField(useGetSet=true, columnName = "url")
+    @DatabaseField(useGetSet = true, columnName = "thread_id")
+    private int threadId;
+
+    @DatabaseField(useGetSet = true, columnName = "url")
     private String url;
 
-    @DatabaseField(useGetSet=true, columnName = "start_size")
+    @DatabaseField(useGetSet = true, columnName = "start_size")
     private long startSize;
 
-    @DatabaseField(useGetSet=true, columnName = "end_size")
+    @DatabaseField(useGetSet = true, columnName = "end_size")
     private long endSize;
 
-    @DatabaseField(useGetSet=true, columnName = "progress")
+    @DatabaseField(useGetSet = true, columnName = "progress")
     private long progress;
 
-    public DownLoadEntity(){
+    public DownLoadEntity() {
 
     }
 
-    public DownLoadEntity(String url, long startSize, long endSize) {
+    public DownLoadEntity(String url, long startSize, long endSize , int threadId) {
 //        this.id = id;
         this.url = url;
         this.startSize = startSize;
         this.endSize = endSize;
+        this.threadId = threadId;
     }
 
     public long getProgress() {
@@ -75,13 +79,23 @@ public class DownLoadEntity {
         this.endSize = endSize;
     }
 
+    public int getThreadId() {
+        return threadId;
+    }
+
+    public void setThreadId(int threadId) {
+        this.threadId = threadId;
+    }
+
     @Override
     public String toString() {
         return "DownLoadEntity{" +
                 "id=" + id +
+                ", threadId=" + threadId +
                 ", url='" + url + '\'' +
                 ", startSize=" + startSize +
                 ", endSize=" + endSize +
+                ", progress=" + progress +
                 '}';
     }
 }

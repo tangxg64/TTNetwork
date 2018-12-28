@@ -34,14 +34,11 @@ public class HttpManager {
     }
 
     public static HttpManager getInstance() {
-        if (httpManager == null) {
-            synchronized (HttpManager.class) {
-                if (httpManager == null) {
-                    httpManager = new HttpManager();
-                }
-            }
-        }
-        return httpManager;
+        return Holder.httpManager;
+    }
+
+    private static class Holder {
+        private static HttpManager httpManager = new HttpManager();
     }
 
     public void init(Context context) {
@@ -104,7 +101,7 @@ public class HttpManager {
             @Override
             public void onResponse(Call call, Response response) throws IOException {
                 if (!response.isSuccessful()) {
-                    callback.fail(NETWORK_ERROR_CODE, "网络请求失败！");
+                    callback.onFail(NETWORK_ERROR_CODE, "网络请求失败！");
                 } else {
                     File file = FileStorageManager.getInstance().getFileByUrl(url);
                     byte[] buffer = new byte[1024 * 200];
@@ -115,7 +112,7 @@ public class HttpManager {
                         outputStream.write(buffer, 0, len);
                         outputStream.flush();
                     }
-                    callback.success(file);
+                    callback.onSuccess(file);
                 }
             }
         });
