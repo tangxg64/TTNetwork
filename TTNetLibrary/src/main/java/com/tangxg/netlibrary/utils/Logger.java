@@ -11,36 +11,37 @@ import java.util.Locale;
 
 public class Logger {
     public static final boolean DEBUG = true;
+    public static final String TAG = "ttnet";
 
-    public static void debug(String tag, String message) {
+    public static void debug(String message) {
         if (DEBUG) {
-            Log.d(tag, message);
+            Log.d(TAG, message);
         }
     }
 
-    public static void debug(String tag, String message, Object... args) {
+    public static void debug(String message, Object... args) {
         if (DEBUG) {
-            Log.d(tag, String.format(Locale.getDefault(), message, args));
-        }
-    }
-
-
-    public static void error(String tag, String message) {
-        if (DEBUG) {
-            Log.e(tag, message);
+            Log.d(TAG, String.format(Locale.getDefault(), message, args));
         }
     }
 
 
-    public static void info(String tag, String message) {
+    public static void error(String message) {
         if (DEBUG) {
-            Log.i(tag, message);
+            Log.e(TAG, message);
         }
     }
 
-    public static void warn(String tag, String message) {
+
+    public static void info(String message) {
         if (DEBUG) {
-            Log.w(tag, message);
+            Log.i(TAG, message);
+        }
+    }
+
+    public static void warn(String message) {
+        if (DEBUG) {
+            Log.w(TAG, message);
         }
     }
 }

@@ -21,13 +21,12 @@ import java.util.Map;
  */
 
 public class DBHelper extends OrmLiteSqliteOpenHelper {
-    private static final String TABLE_NAME = "orm_download_info.db";//默认是在data/data/包名/databases/路径下
-    public static final String DATABASE_PATH = Environment.getExternalStorageDirectory() + "/ttnet/" + TABLE_NAME;//指定路径
+    private static final String TABLE_NAME = "/download_info.db";//默认是在data/data/包名/databases/路径下
     private static final int DB_VERSION = 1;
     private Map<String, Dao> daos = new HashMap<String, Dao>();
 
     private DBHelper(Context context) {
-        super(context, DATABASE_PATH, null, DB_VERSION);
+        super(context, context.getCacheDir().getAbsolutePath()  + TABLE_NAME, null, DB_VERSION);
     }
 
     @Override

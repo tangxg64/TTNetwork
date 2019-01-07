@@ -1,10 +1,12 @@
 package com.tangxg.netlibrary.download;
 
 import android.content.Context;
+import android.os.Process;
 
 import com.tangxg.netlibrary.FileStorageManager;
 import com.tangxg.netlibrary.db.DownLoadDao;
 import com.tangxg.netlibrary.db.DownLoadEntity;
+import com.tangxg.netlibrary.utils.Logger;
 
 import java.io.File;
 import java.io.InputStream;
@@ -37,11 +39,14 @@ public class DownLoadRunnable implements Runnable {
 
     @Override
     public void run() {
+        //线程优先级为后级别
+        android.os.Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND);
         Response response = HttpManager.getInstance().syncRequestByRange(url, startSize, endSize);
         if (response == null && callback != null) {
             callback.onFail(HttpManager.NETWORK_ERROR_CODE, "网络请求失败！");
             return;
         }
+        long finshProgress = downLoadEntity.getProgress() <=0 ? 0 : downLoadEntity.getProgress();
         try {
             int progress = 0;
             File file = FileStorageManager.getInstance().getFileByUrl(url);
@@ -49,14 +54,16 @@ public class DownLoadRunnable implements Runnable {
             RandomAccessFile accessFile = new RandomAccessFile(file, "rwd");
             accessFile.seek(startSize);
             //写入数据
-            byte[] buffer = new byte[1024 * 200];
+            byte[] buffer = new byte[1024 * 500];
             int len;
             InputStream inputStream = response.body().byteStream();
             while ((len = inputStream.read(buffer, 0, buffer.length)) != -1) {
                 accessFile.write(buffer, 0, len);
                 progress += len;
+                downLoadEntity.setProgress(progress);
+                Logger.debug("ttnet", "progress  ----->" + progress);
             }
-            downLoadEntity.setProgress(progress);
+            downLoadEntity.setProgress(downLoadEntity.getProgress() + finshProgress);
             //下载信息写入到表中
             DownLoadDao dao = new DownLoadDao(context);
             dao.addDownLoadInfo(downLoadEntity);

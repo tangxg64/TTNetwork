@@ -3,6 +3,7 @@ package com.tangxg.netlibrary.download;
 import android.content.Context;
 
 import com.tangxg.netlibrary.FileStorageManager;
+import com.tangxg.netlibrary.utils.Logger;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -74,6 +75,7 @@ public class HttpManager {
                 .addHeader("Range", "bytes=" + start + "-" + end)
                 .build();
         try {
+            Logger.info("Range bytes = start :" + start + "- end :" + end);
             Response response = okClient.newCall(request).execute();
             return response;
         } catch (IOException e) {

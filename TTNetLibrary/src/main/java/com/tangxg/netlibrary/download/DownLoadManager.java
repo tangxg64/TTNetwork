@@ -29,8 +29,7 @@ import okhttp3.Response;
  */
 
 public class DownLoadManager {
-    private static DownLoadManager dlManager;
-    private static final int MAX_THREAD_COUNT = 3;
+    private static final int MAX_THREAD_COUNT = 2;
     //防止重复请求下载
     private HashSet<DownLoadTask> downLoadTasks = new HashSet<>();
     private Context context;
@@ -103,7 +102,8 @@ public class DownLoadManager {
                         Thread.sleep(200);
                         File file = FileStorageManager.getInstance().getFileByUrl(url);
                         long fileSize = file.length();
-                        int progress = (int) (mLength / fileSize  * 100);
+                        int progress = (int) (fileSize  / mLength ) * 100;
+//                        int progress = (int) (fileSize * 100.0 / mLength);
                         if (progress >= 100) {
                             callback.onProgress(progress);
                             return;
@@ -155,7 +155,7 @@ public class DownLoadManager {
             //计算出每个线程需要下载的长度和起始位，结束位
             long startSize = i * threadLoadSize;
             long endSize = 0;
-            if (endSize == MAX_THREAD_COUNT - 1) {
+            if (i == MAX_THREAD_COUNT - 1) {
                 endSize = length - 1;
             } else {
                 endSize = (i + 1) * threadLoadSize - 1;
