@@ -76,12 +76,12 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onFail(int code, String errorMessage) {
-                Logger.debug(TAG, "code : " + code + "  mesg :" + errorMessage);
                 Toast.makeText(MainActivity.this, "code : " + code + "  mesg :" + errorMessage, Toast.LENGTH_SHORT).show();
             }
 
             @Override
             public void onProgress(int progress) {
+                Logger.info("progress : " + progress);
                 progressBarView.setProgress(progress);
             }
         });

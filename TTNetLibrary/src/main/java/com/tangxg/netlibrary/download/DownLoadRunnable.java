@@ -39,14 +39,14 @@ public class DownLoadRunnable implements Runnable {
 
     @Override
     public void run() {
-        //线程优先级为后级别
+        //线程优先级为后台级别
+        long finshProgress = downLoadEntity.getProgress() <= 0 ? 0 : downLoadEntity.getProgress();
         android.os.Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND);
-        Response response = HttpManager.getInstance().syncRequestByRange(url, startSize, endSize);
-        if (response == null && callback != null) {
+        Response response = HttpManager.getInstance().syncRequestByRange(url, startSize, endSize, finshProgress, callback);
+        if (response == null) {
             callback.onFail(HttpManager.NETWORK_ERROR_CODE, "网络请求失败！");
             return;
         }
-        long finshProgress = downLoadEntity.getProgress() <=0 ? 0 : downLoadEntity.getProgress();
         try {
             int progress = 0;
             File file = FileStorageManager.getInstance().getFileByUrl(url);
@@ -61,7 +61,7 @@ public class DownLoadRunnable implements Runnable {
                 accessFile.write(buffer, 0, len);
                 progress += len;
                 downLoadEntity.setProgress(progress);
-                Logger.debug("ttnet", "progress  ----->" + progress);
+                Logger.info("progress  ----->" + progress);
             }
             downLoadEntity.setProgress(downLoadEntity.getProgress() + finshProgress);
             //下载信息写入到表中

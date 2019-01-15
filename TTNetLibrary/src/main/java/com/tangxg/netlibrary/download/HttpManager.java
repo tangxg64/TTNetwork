@@ -12,6 +12,7 @@ import java.io.InputStream;
 
 import okhttp3.Call;
 import okhttp3.Callback;
+import okhttp3.Interceptor;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -66,15 +67,30 @@ public class HttpManager {
     /**
      * 同步下载请求
      * (根据Range分段下载)
-     *
      * @param url
+     * @param start
+     * @param end
+     * @param startsPoint
+     * @param callback
      * @return
      */
-    public Response syncRequestByRange(String url, long start, long end) {
+    public Response syncRequestByRange(String url, long start, long end, final long startsPoint, final DownLoadCallback callback) {
         Request request = new Request.Builder().url(url)
                 .addHeader("Range", "bytes=" + start + "-" + end)
                 .build();
         try {
+            // 重写ResponseBody监听请求
+            Interceptor interceptor = new Interceptor() {
+                @Override
+                public Response intercept(Chain chain) throws IOException {
+                    Response originalResponse = chain.proceed(chain.request());
+                    return originalResponse.newBuilder()
+                            .body(new DownloadResponseBody(originalResponse, startsPoint, callback))
+                            .build();
+                }
+            };
+            //加入拦截器
+//            okClient = okClient.newBuilder().addNetworkInterceptor(interceptor).build();
             Logger.info("Range bytes = start :" + start + "- end :" + end);
             Response response = okClient.newCall(request).execute();
             return response;

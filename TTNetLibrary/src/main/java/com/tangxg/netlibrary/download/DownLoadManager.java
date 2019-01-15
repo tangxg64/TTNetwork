@@ -102,8 +102,9 @@ public class DownLoadManager {
                         Thread.sleep(200);
                         File file = FileStorageManager.getInstance().getFileByUrl(url);
                         long fileSize = file.length();
-                        int progress = (int) (fileSize  / mLength ) * 100;
-//                        int progress = (int) (fileSize * 100.0 / mLength);
+//                        int progress = (int) (fileSize  / mLength ) * 100;
+                        int progress = (int) (fileSize * 100.0 / mLength);
+
                         if (progress >= 100) {
                             callback.onProgress(progress);
                             return;
